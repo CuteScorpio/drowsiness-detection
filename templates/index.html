@@ -2,13 +2,39 @@
 <html>
 <head>
   <title>Drowsiness Detection</title>
+
+  <style>
+    body {
+      text-align: center;
+      background: #111;
+      color: white;
+      font-family: Arial;
+    }
+
+    video {
+      border: 4px solid #00ffcc;
+      border-radius: 15px;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin-top: 15px;
+      background: #00ffcc;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+  </style>
 </head>
+
 <body>
-  <h2>Drowsiness Detection System</h2>
+  <h1>🚗 Driver Drowsiness Detection</h1>
 
   <video id="video" autoplay playsinline muted width="300"></video>
-  <br><br>
-  <button onclick="enableAudio()">Enable Sound</button>
+  <br>
+
+  <button onclick="enableAudio()">Enable Alarm</button>
 
   <audio id="alarm" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
 
