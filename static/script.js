@@ -14,18 +14,20 @@ async function startCamera() {
   }
 }
 
-// Start on user click (mobile fix)
+// mobile fix (user interaction required)
 document.body.addEventListener("click", () => {
   startCamera();
 }, { once: true });
 
-// Enable sound (required for iOS)
+// enable audio
 function enableAudio() {
   alarm.play().then(() => alarm.pause());
 }
 
-// Send frames to backend
-setInterval(() => {
+// send frames safely
+async function sendFrame() {
+  if (!video.videoWidth) return;
+
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
@@ -34,18 +36,31 @@ setInterval(() => {
   ctx.drawImage(video, 0, 0);
 
   canvas.toBlob(async (blob) => {
+    if (!blob) return;
+
     const formData = new FormData();
-    formData.append("frame", blob);
+    formData.append("frame", blob, "frame.jpg");
 
-    const res = await fetch("/detect", {
-      method: "POST",
-      body: formData
-    });
+    try {
+      const res = await fetch("/detect", {
+        method: "POST",
+        body: formData
+      });
 
-    const data = await res.json();
+      if (!res.ok) return;
 
-    if (data.drowsy) {
-      alarm.play();
+      const data = await res.json();
+
+      if (data.drowsy) {
+        alarm.play();
+      }
+
+    } catch (err) {
+      console.error(err);
     }
+
   }, "image/jpeg");
-}, 3000);
+}
+
+// every 3 sec
+setInterval(sendFrame, 3000);

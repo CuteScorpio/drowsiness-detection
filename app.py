@@ -6,7 +6,11 @@ import numpy as np
 app = Flask(__name__)
 
 mp_face_mesh = mp.solutions.face_mesh
-face_mesh = mp_face_mesh.FaceMesh(refine_landmarks=True)
+face_mesh = mp_face_mesh.FaceMesh(
+    static_image_mode=False,
+    max_num_faces=1,
+    refine_landmarks=True
+)
 
 LEFT_EYE = [33, 160, 158, 133, 153, 144]
 RIGHT_EYE = [362, 385, 387, 263, 373, 380]
@@ -23,32 +27,47 @@ def home():
 
 @app.route("/detect", methods=["POST"])
 def detect():
+    if 'frame' not in request.files:
+        return jsonify({"error": "No frame received"}), 400
+
     file = request.files['frame']
-    npimg = np.frombuffer(file.read(), np.uint8)
-    frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
-    h, w, _ = frame.shape
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = face_mesh.process(rgb)
+    if file.filename == '':
+        return jsonify({"error": "Empty file"}), 400
 
-    drowsy = False
+    try:
+        npimg = np.frombuffer(file.read(), np.uint8)
+        frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
-    if results.multi_face_landmarks:
-        for face_landmarks in results.multi_face_landmarks:
-            mesh_points = [(int(p.x * w), int(p.y * h)) for p in face_landmarks.landmark]
+        if frame is None:
+            return jsonify({"error": "Invalid image"}), 400
 
-            left_eye = [mesh_points[i] for i in LEFT_EYE]
-            right_eye = [mesh_points[i] for i in RIGHT_EYE]
+        h, w, _ = frame.shape
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = face_mesh.process(rgb)
 
-            left_EAR = eye_aspect_ratio(left_eye)
-            right_EAR = eye_aspect_ratio(right_eye)
+        drowsy = False
 
-            ear = (left_EAR + right_EAR) / 2.0
+        if results.multi_face_landmarks:
+            for face_landmarks in results.multi_face_landmarks:
+                mesh_points = [(int(p.x * w), int(p.y * h)) for p in face_landmarks.landmark]
 
-            if ear < 0.25:
-                drowsy = True
+                left_eye = [mesh_points[i] for i in LEFT_EYE]
+                right_eye = [mesh_points[i] for i in RIGHT_EYE]
 
-    return jsonify({"drowsy": drowsy})
+                left_EAR = eye_aspect_ratio(left_eye)
+                right_EAR = eye_aspect_ratio(right_eye)
+
+                ear = (left_EAR + right_EAR) / 2.0
+
+                if ear < 0.25:
+                    drowsy = True
+
+        return jsonify({"drowsy": drowsy})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
