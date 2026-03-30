@@ -1,0 +1,17 @@
+[Unit]
+Description=DrowseGuard - Driver Drowsiness Detection
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/drowsiness-detection
+Environment="PATH=/home/ubuntu/drowsiness-detection/venv/bin"
+ExecStart=/home/ubuntu/drowsiness-detection/venv/bin/gunicorn \
+    --config gunicorn.conf.py \
+    app:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
